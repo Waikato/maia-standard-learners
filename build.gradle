@@ -1,0 +1,21 @@
+plugins {
+    id 'org.jetbrains.kotlin.jvm' version '1.5.21'
+}
+
+group 'maia'
+version '1.0-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation "maia:maia-standard-types"
+    api "maia:maia-learner"
+    implementation "maia:maia-learner-factory"
+    implementation "org.jetbrains.kotlin:kotlin-stdlib"
+}
+
+sourceSets {
+    main.kotlin.srcDirs += 'src'
+}
