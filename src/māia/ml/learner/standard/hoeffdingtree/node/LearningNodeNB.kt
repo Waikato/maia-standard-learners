@@ -1,7 +1,7 @@
 package māia.ml.learner.standard.hoeffdingtree.node
 
 import māia.ml.dataset.DataRow
-import māia.ml.dataset.util.ifNotMissing
+import māia.ml.dataset.error.MissingValue
 import māia.ml.learner.standard.hoeffdingtree.HoeffdingTree
 import māia.ml.learner.standard.hoeffdingtree.util.ObservedClassDistribution
 import māia.util.inlineRangeForLoop
@@ -37,8 +37,10 @@ open class LearningNodeNB(
                     val attributeIndex = attributeIndices[it]
                     val observer = attributeObservers[it]
                     if (observer.observedWeight != 0.0)
-                        row.ifNotMissing(attributeIndex) { _, value ->
-                            result *= observer.probabilityOfAttributeValueGivenClass(value, i)
+                        try {
+                            result *= observer.probabilityOfAttributeValueGivenClass(row, i)
+                        } catch (e: MissingValue) {
+                            // Do nothing for missing values
                         }
                 }
                 result

@@ -1,8 +1,7 @@
 package māia.ml.learner.standard.hoeffdingtree.observer
 
-import māia.ml.dataset.type.DataTypeWithMissingValues
-import māia.ml.dataset.type.Nominal
-import māia.ml.dataset.type.Numeric
+import māia.ml.dataset.type.standard.Nominal
+import māia.ml.dataset.type.standard.Numeric
 
 /**
  * TODO: What class does.
@@ -10,9 +9,9 @@ import māia.ml.dataset.type.Numeric
  * @author Corey Sterling (csterlin at waikato dot ac dot nz)
  */
 abstract class NumericAttributeClassObserver(
-    dataType: DataTypeWithMissingValues<*, Double, Numeric<*>, *, *>,
-    classDataType: Nominal<*>
-): AttributeClassObserver<DataTypeWithMissingValues<*, Double, Numeric<*>, *, *>>(
+    dataType: Numeric<*, *>,
+    classDataType: Nominal<*, *, *, *>
+): AttributeClassObserver<Numeric<*, *>>(
     dataType,
     classDataType
 ) {

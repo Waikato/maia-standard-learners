@@ -1,12 +1,8 @@
 package māia.ml.learner.standard.hoeffdingtree.node
 
 import māia.ml.dataset.DataRow
-import māia.ml.dataset.type.DataTypeWithMissingValues
-import māia.ml.dataset.type.Nominal
-import māia.ml.dataset.type.Numeric
-import māia.ml.dataset.util.ensureMissingValues
-import māia.ml.dataset.util.indexOfInternalUnchecked
-import māia.ml.dataset.util.isPossiblyMissing
+import māia.ml.dataset.type.standard.Nominal
+import māia.ml.dataset.type.standard.Numeric
 import māia.ml.dataset.util.weight
 import māia.ml.learner.standard.hoeffdingtree.HoeffdingTree
 import māia.ml.learner.standard.hoeffdingtree.observer.AttributeClassObserver
@@ -18,6 +14,7 @@ import māia.ml.learner.standard.hoeffdingtree.util.ObservedClassDistribution
 import māia.util.Absent
 import māia.util.Optional
 import māia.util.asIterable
+import māia.util.ensureIndexInRange
 import māia.util.enumerate
 import māia.util.inlineRangeForLoop
 import māia.util.map
@@ -83,8 +80,8 @@ open class SplitNode(
 
     internal operator fun set(index : Int, child: Node) {
         val maxBranches = splitTest.maxBranches
-        if (maxBranches !is Absent && index >= maxBranches.get())
-            throw IndexOutOfBoundsException(index)
+        if (maxBranches !is Absent)
+            ensureIndexInRange(index, maxBranches.get()) {}
         _children[index] = child
     }
 
@@ -175,17 +172,11 @@ open class LearningNode(
         attributeIndices = IntArray(owner.predictInputHeaders.numColumns)
         attributeObservers = Array(owner.predictInputHeaders.numColumns) {
             val attributeIndex = if (it < owner.classColumnIndex) it else it + 1
-            val type = owner.predictInputHeaders.getColumnHeader(it).type
-            val observer = if (isPossiblyMissing<Nominal<*>>(type)) {
-                owner.nominalEstimatorFactory(
-                    type.ensureMissingValues() as DataTypeWithMissingValues<*, String, Nominal<*>, *, *>,
-                    owner.classType
-                )
-            } else if (isPossiblyMissing<Numeric<*>>(type)) {
-                owner.numericEstimatorFactory(
-                    type.ensureMissingValues() as DataTypeWithMissingValues<*, Double, Numeric<*>, *, *>,
-                    owner.classType
-                )
+            val type = owner.predictInputHeaders[it].type
+            val observer = if (type is Nominal<*, *, *, *>) {
+                owner.nominalEstimatorFactory(type, owner.classType)
+            } else if (type is Numeric<*, *>) {
+                owner.numericEstimatorFactory(type, owner.classType)
             } else {
                 throw Exception("Attribute type must be numeric or nominal")
             }
@@ -199,19 +190,16 @@ open class LearningNode(
     ) {
         initAttributeObservers()
 
-        val classValue = row.getColumn(owner.classColumnIndex)
-        val classIndex = owner.classType.indexOfInternalUnchecked(classValue)
+        val classIndex = row.getValue(owner.classType.indexRepresentation)
 
         val rowWeight = row.weight
 
         observedClassDistribution[classIndex] += rowWeight
 
         inlineRangeForLoop(attributeObservers.size) {
-            val attributeIndex = attributeIndices[it]
             val observer = attributeObservers[it]
-            val value = row.getColumn(attributeIndex)
             observer.observe(
-                value,
+                row,
                 classIndex,
                 rowWeight
             )
@@ -290,7 +278,7 @@ open class LearningNode(
         val maxClassIndex = observedClassDistribution.maxClassIndex
         out
             .append(" " * indent, "Leaf [")
-            .append(owner.predictOutputHeaders.getColumnHeader(0).name)
+            .append(owner.predictOutputHeaders[0].name)
             .append(":class] = <")
             .append(owner.classType[maxClassIndex])
             .append(":class ${maxClassIndex + 1}> weights: ")

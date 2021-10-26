@@ -7,14 +7,15 @@ import māia.configure.ConfigurationItem
 import māia.configure.asReconfigureBlock
 import māia.ml.dataset.DataBatch
 import māia.ml.dataset.DataRow
-import māia.ml.dataset.WithColumnHeaders
+import māia.ml.dataset.WithColumns
+import māia.ml.dataset.headers.DataColumnHeaders
+import māia.ml.dataset.headers.DataColumnHeadersView
+import māia.ml.dataset.headers.ensureOwnership
+import māia.ml.dataset.type.DataRepresentation
 import māia.ml.dataset.type.DataType
-import māia.ml.dataset.type.Nominal
-import māia.ml.dataset.type.Numeric
-import māia.ml.dataset.util.buildRow
-import māia.ml.dataset.util.convertToExternalUnchecked
-import māia.ml.dataset.util.convertToInternalUnchecked
-import māia.ml.dataset.view.readOnlyViewAllColumnsExcept
+import māia.ml.dataset.type.standard.Nominal
+import māia.ml.dataset.type.standard.Numeric
+import māia.ml.dataset.util.allColumnsExcept
 import māia.ml.dataset.view.readOnlyViewColumns
 import māia.ml.learner.AbstractLearner
 import māia.ml.learner.factory.ConfigurableLearnerFactory
@@ -38,7 +39,7 @@ class NaiveBayesLearner(
         val targetIndex : Int,
         val useKernelEstimator : Boolean,
         val useDiscretization : Boolean
-) : AbstractLearner<DataBatch<*, *>>(
+) : AbstractLearner<DataBatch<*>>(
         Classifier,
         DataBatch::class
 ){
@@ -51,15 +52,15 @@ class NaiveBayesLearner(
 
     private lateinit var classDistribution : Estimator
 
-    private lateinit var targetType : Nominal<*>
+    private lateinit var targetType : Nominal<*, *, *, *>
 
     override fun performInitialisation(
-            headers : WithColumnHeaders
-    ) : Triple<WithColumnHeaders, WithColumnHeaders, LearnerType> {
+        headers : DataColumnHeaders
+    ) : Triple<DataColumnHeaders, DataColumnHeaders, LearnerType> {
 
-        val targetType = headers.getColumnHeader(targetIndex).type
+        val targetType = headers[targetIndex].type
 
-        if (targetType !is Nominal<*>)
+        if (targetType !is Nominal<*, *, *, *>)
             throw Exception("NaiveBayes only supports nominal classes")
 
         this.targetType = targetType
@@ -67,13 +68,13 @@ class NaiveBayesLearner(
         this.numClasses = targetType.numCategories
 
         return Triple(
-                headers.readOnlyViewAllColumnsExcept(targetIndex),
-                headers.readOnlyViewColumns(OrderedHashSet(targetIndex)),
-                Classifier
+            DataColumnHeadersView(headers, headers.allColumnsExcept(targetIndex)),
+            DataColumnHeadersView(headers, OrderedHashSet(targetIndex)),
+            Classifier
         )
     }
 
-    override fun performTrain(trainingDataset : DataBatch<*, *>) {
+    override fun performTrain(trainingDataset : DataBatch<*>) {
         // TODO: Implement support
         if (useDiscretization)
             throw NotImplementedError("Using discretization with NaiveBayes is not yet supported")
@@ -81,14 +82,14 @@ class NaiveBayesLearner(
         classDistribution = DiscreteEstimator(numClasses, true)
         distributions = Array(trainHeaders.numColumns - 1) {attIndex ->
             val nonClassAttributeIndex = if (attIndex < targetIndex) attIndex else attIndex + 1
-            val attribute = trainHeaders.getColumnHeader(nonClassAttributeIndex)
+            val attribute = trainHeaders[nonClassAttributeIndex]
             val attributeType = attribute.type
 
             var numPrecision = DEFAULT_NUM_PRECISION
-            if (trainingDataset.numRows > 0 && attributeType is Numeric<*>) {
-                val column = trainingDataset.getColumn(nonClassAttributeIndex)
-                val sorted = Array(column.numRows) {
-                    attributeType.convertToExternalUnchecked(column.getRow(it))
+            if (trainingDataset.numRows > 0 && attributeType is Numeric<*, *>) {
+                val column = trainingDataset.getColumn(attributeType.canonicalRepresentation)
+                val sorted = DoubleArray(column.numRows) {
+                    column.getRow(it)
                 }
                 sorted.sort()
                 var lastVal = sorted[0]
@@ -107,7 +108,7 @@ class NaiveBayesLearner(
             Array(numClasses) {
                 when (attributeType) {
                     is Numeric -> if (useKernelEstimator) KernelEstimator(numPrecision) else NormalEstimator(numPrecision)
-                    is Nominal -> DiscreteEstimator(attributeType.numCategories, true)
+                    is Nominal<*, *, *, *> -> DiscreteEstimator(attributeType.numCategories, true)
                     else -> throw Exception("Attribute type unknown to NaiveBayes")
                 }
             }
@@ -119,19 +120,18 @@ class NaiveBayesLearner(
     private fun updateClassifier(row : DataRow) {
         for (attIndex in 0 until trainHeaders.numColumns - 1) {
             val nonClassAttributeIndex = if (attIndex < targetIndex) attIndex else attIndex + 1
-            val attribute = trainHeaders.getColumnHeader(nonClassAttributeIndex)
+            val attribute = trainHeaders[nonClassAttributeIndex]
             val attributeType = attribute.type
-            val attributeValue = row.getColumn(nonClassAttributeIndex)
-            val classValue = targetType.convertToExternalUnchecked(row.getColumn(targetIndex))
-            val doubleValue : Double = getAttributeDoubleValue(attributeType, attributeValue)
-            distributions[attIndex][targetType.indexOf(classValue)].addValue(doubleValue)
+            val classValue = row.getValue(targetType.indexRepresentation)
+            val doubleValue : Double = getAttributeDoubleValue(attributeType, row)
+            distributions[attIndex][classValue].addValue(doubleValue)
         }
     }
 
-    private fun getAttributeDoubleValue(attributeType : DataType<*, *>, attributeValue : Any?) : Double {
+    private fun getAttributeDoubleValue(attributeType : DataType<*, *>, row: DataRow) : Double {
         return when (attributeType) {
-            is Numeric<*> -> attributeType.convertToExternalUnchecked(attributeValue)
-            is Nominal<*> -> attributeType.indexOf(attributeType.convertToExternalUnchecked(attributeValue)).toDouble()
+            is Numeric<*, *> -> row.getValue(attributeType.canonicalRepresentation)
+            is Nominal<*, *, *, *> -> row.getValue(attributeType.indexRepresentation).toDouble()
             else -> throw Exception("All attributes must be numeric or nominal")
         }
     }
@@ -151,8 +151,13 @@ class NaiveBayesLearner(
 
         val selection = if (max > 0) targetType[maxIndex] else targetType.random()
 
-        return predictOutputHeaders.buildRow(cacheHeaders = false) { _ ->
-            targetType.convertToInternalUnchecked(selection)
+        return object : DataRow {
+            override val headers : DataColumnHeaders = predictOutputHeaders
+            override fun <T> getValue(
+                representation : DataRepresentation<*, *, out T>
+            ) : T = headers.ensureOwnership(representation) {
+                return convert(selection, targetType.canonicalRepresentation)
+            }
         }
     }
 
@@ -165,12 +170,15 @@ class NaiveBayesLearner(
 
         for (attIndex in 0 until trainHeaders.numColumns - 1) {
             val nonClassAttributeIndex = if (attIndex < targetIndex) attIndex else attIndex + 1
-            val attr = trainHeaders.getColumnHeader(nonClassAttributeIndex)
+            val attr = trainHeaders[nonClassAttributeIndex]
             var temp : Double
             var max = 0.0
 
             for (j in 0 until numClasses) {
-                temp = max(1e-75, distributions[attIndex][j].getProbability(getAttributeDoubleValue(attr.type, row.getColumn(nonClassAttributeIndex))))
+                temp = max(
+                    1e-75,
+                    distributions[attIndex][j].getProbability(getAttributeDoubleValue(attr.type, row))
+                )
                 probs[j] *= temp
                 if (probs[j] > max) max = probs[j]
                 if (probs[j].isNaN()) throw Exception("NaN returned from estimator for attribute ${attr.name}:\n" +

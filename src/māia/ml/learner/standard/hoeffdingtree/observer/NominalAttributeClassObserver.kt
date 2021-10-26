@@ -1,10 +1,8 @@
 package māia.ml.learner.standard.hoeffdingtree.observer
 
-import māia.ml.dataset.type.DataTypeWithMissingValues
-import māia.ml.dataset.type.Nominal
-import māia.ml.dataset.util.convertNotMissingToBaseUnchecked
-import māia.ml.dataset.util.indexOfInternalUnchecked
-import māia.ml.dataset.util.isMissingInternalUnchecked
+import māia.ml.dataset.DataRow
+import māia.ml.dataset.error.MissingValue
+import māia.ml.dataset.type.standard.Nominal
 import māia.ml.learner.standard.hoeffdingtree.split.criterion.SplitCriterion
 import māia.ml.learner.standard.hoeffdingtree.split.test.NominalAttributeBinaryTest
 import māia.ml.learner.standard.hoeffdingtree.split.test.NominalAttributeMultiwayTest
@@ -17,9 +15,9 @@ import māia.util.mapInPlaceIndexed
  * @author Corey Sterling (csterlin at waikato dot ac dot nz)
  */
 open class NominalAttributeClassObserver(
-    dataType: DataTypeWithMissingValues<*, String, Nominal<*>, *, *>,
-    classDataType: Nominal<*>
-): AttributeClassObserver<DataTypeWithMissingValues<*, String, Nominal<*>, *, *>>(
+    dataType: Nominal<*, *, *, *>,
+    classDataType: Nominal<*, *, *, *>
+): AttributeClassObserver<Nominal<*, *, *, *>>(
     dataType,
     classDataType
 ) {
@@ -28,35 +26,33 @@ open class NominalAttributeClassObserver(
     private var missingWeightObserved = 0.0
 
     private val attributeDistributionPerClass = Array(classDataType.numCategories) {
-        ObservedClassDistribution(dataType.base.numCategories)
+        ObservedClassDistribution(dataType.numCategories)
     }
 
     val numAttributeClasses: Int
-        get() = attributeDataType.base.numCategories
+        get() = attributeDataType.numCategories
 
     override fun observeAttributeForClass(
-        value : Any?,
+        row : DataRow,
         classIndex : Int,
         weight : Double
     ) {
         totalWeightObserved += weight
 
-        if (attributeDataType.isMissingInternalUnchecked(value))
-            missingWeightObserved += weight
-        else {
-            val attrClass = attributeDataType.internalConverter.convertNotMissingToBaseUnchecked(value)
-            val attrClassIndex = attributeDataType.base.indexOfInternalUnchecked(attrClass)
+        try {
+            val attrClassIndex = row.getValue(attributeDataType.indexRepresentation)
             attributeDistributionPerClass[classIndex].array[attrClassIndex] += weight
+        } catch (e: MissingValue) {
+            missingWeightObserved += weight
         }
     }
 
     override fun probabilityOfAttributeValueGivenClass(
-        value : Any?,
+        row : DataRow,
         classIndex : Int
     ) : Double {
         val obs = attributeDistributionPerClass[classIndex].array
-        val attrClass = attributeDataType.internalConverter.convertNotMissingToBaseUnchecked(value)
-        val attrClassIndex = attributeDataType.base.indexOfInternalUnchecked(attrClass)
+        val attrClassIndex = row.getValue(attributeDataType.indexRepresentation)
         val prob = (obs[attrClassIndex] + 1) / (obs.sum() + obs.size)
         return prob
     }

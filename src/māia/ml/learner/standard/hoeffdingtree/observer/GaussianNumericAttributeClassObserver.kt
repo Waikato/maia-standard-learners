@@ -1,11 +1,9 @@
 package māia.ml.learner.standard.hoeffdingtree.observer
 
-import māia.ml.dataset.type.DataTypeWithMissingValues
-import māia.ml.dataset.type.Nominal
-import māia.ml.dataset.type.Numeric
-import māia.ml.dataset.type.WithFiniteMissingValues
-import māia.ml.dataset.util.convertToExternalUnchecked
-import māia.ml.dataset.util.isMissingInternalUnchecked
+import māia.ml.dataset.DataRow
+import māia.ml.dataset.error.MissingValue
+import māia.ml.dataset.type.standard.Nominal
+import māia.ml.dataset.type.standard.Numeric
 import māia.ml.learner.standard.hoeffdingtree.split.criterion.SplitCriterion
 import māia.ml.learner.standard.hoeffdingtree.split.test.NumericAttributeBinaryTest
 import māia.ml.learner.standard.hoeffdingtree.util.ObservedClassDistribution
@@ -20,41 +18,41 @@ import kotlin.collections.HashMap
  * @author Corey Sterling (csterlin at waikato dot ac dot nz)
  */
 class GaussianNumericAttributeClassObserver(
-    dataType: DataTypeWithMissingValues<*, Double, Numeric<*>, *, *>,
-    classDataType: Nominal<*>,
-    val numBins: Int = 10
+    dataType: Numeric<*, *>,
+    classDataType: Nominal<*, *, *, *>,
+    val numBins: Int
 ): NumericAttributeClassObserver(
     dataType,
     classDataType
 ) {
     constructor(
-        dataType: WithFiniteMissingValues<*, Double, Numeric<*>, *, *>,
-        classDataType: Nominal<*>
+        dataType: Numeric<*, *>,
+        classDataType: Nominal<*, *, *, *>,
     ): this(dataType, classDataType, 10)
 
     private val classEstimators: MutableMap<Int, GaussianEstimator> = HashMap()
 
     override fun observeAttributeForClass(
-        value : Any?,
+        row : DataRow,
         classIndex : Int,
         weight : Double
     ) {
-        if (attributeDataType.isMissingInternalUnchecked(value)) return
-
-        val estimator = classEstimators[classIndex]
-            ?: GaussianEstimator().also { classEstimators[classIndex] = it }
-
-        val numericValue = attributeDataType.base.convertToExternalUnchecked(value)
-
-        estimator.observe(numericValue, weight)
+        try {
+            val estimator = classEstimators[classIndex]
+                ?: GaussianEstimator().also { classEstimators[classIndex] = it }
+            val numericValue = row.getValue(attributeDataType.canonicalRepresentation)
+            estimator.observe(numericValue, weight)
+        } catch (e: MissingValue) {
+            return
+        }
     }
 
     override fun probabilityOfAttributeValueGivenClass(
-        value : Any?,
+        row : DataRow,
         classIndex : Int
     ) : Double {
         val estimator = classEstimators[classIndex] ?: return 0.0
-        val numericValue = attributeDataType.base.convertToExternalUnchecked(value)
+        val numericValue = row.getValue(attributeDataType.canonicalRepresentation)
         return estimator.probabilityDensity(numericValue)
     }
 

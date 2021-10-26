@@ -1,7 +1,6 @@
 package māia.ml.learner.standard.hoeffdingtree.node
 
 import māia.ml.dataset.DataRow
-import māia.ml.dataset.util.indexOfInternalUnchecked
 import māia.ml.dataset.util.weight
 import māia.ml.learner.standard.hoeffdingtree.HoeffdingTree
 import māia.ml.learner.standard.hoeffdingtree.util.ObservedClassDistribution
@@ -20,7 +19,7 @@ class LearningNodeNBAdaptive(
     private var nbCorrectWeight = 0.0
 
     override fun learnFromRow(row : DataRow) {
-        val trueClassIndex = owner.classType.indexOfInternalUnchecked(row.getColumn(owner.classColumnIndex))
+        val trueClassIndex = row.getValue(owner.classType.indexRepresentation)
         if (observedClassDistribution.maxClassIndex == trueClassIndex)
             mcCorrectWeight += row.weight
         if (doNaiveBayesPrediction(row).maxClassIndex.coerceAtLeast(0) == trueClassIndex)

@@ -1,7 +1,8 @@
 package māia.ml.learner.standard.hoeffdingtree.observer
 
-import māia.ml.dataset.type.Nominal
-import māia.ml.dataset.type.UntypedData
+import māia.ml.dataset.DataRow
+import māia.ml.dataset.type.standard.Nominal
+import māia.ml.dataset.type.standard.UntypedData
 import māia.ml.learner.standard.hoeffdingtree.split.criterion.SplitCriterion
 import māia.ml.learner.standard.hoeffdingtree.util.ObservedClassDistribution
 
@@ -11,16 +12,16 @@ import māia.ml.learner.standard.hoeffdingtree.util.ObservedClassDistribution
  * @author Corey Sterling (csterlin at waikato dot ac dot nz)
  */
 class NullAttributeClassObserver(
-    classDataType: Nominal<*>
-) : AttributeClassObserver<UntypedData>(UntypedData, classDataType) {
+    classDataType: Nominal<*, *, *, *>
+) : AttributeClassObserver<UntypedData<*, *>>(UntypedData.PlaceHolder(true), classDataType) {
     override fun observeAttributeForClass(
-        value : Any?,
+        row : DataRow,
         classIndex : Int,
         weight : Double
     ) {}
 
     override fun probabilityOfAttributeValueGivenClass(
-        value : Any?,
+        row : DataRow,
         classIndex : Int
     ) : Double {
         return 0.0

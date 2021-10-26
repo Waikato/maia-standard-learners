@@ -1,7 +1,8 @@
 package māia.ml.learner.standard.hoeffdingtree.observer
 
+import māia.ml.dataset.DataRow
 import māia.ml.dataset.type.DataType
-import māia.ml.dataset.type.Nominal
+import māia.ml.dataset.type.standard.Nominal
 import māia.ml.learner.standard.hoeffdingtree.split.criterion.SplitCriterion
 import māia.ml.learner.standard.hoeffdingtree.util.ObservedClassDistribution
 
@@ -12,7 +13,7 @@ import māia.ml.learner.standard.hoeffdingtree.util.ObservedClassDistribution
  */
 abstract class AttributeClassObserver<D: DataType<*, *>>(
     val attributeDataType: D,
-    val classDataType: Nominal<*>
+    val classDataType: Nominal<*, *, *, *>
 ) {
     val numTargetClasses: Int
         get() = classDataType.numCategories
@@ -21,22 +22,22 @@ abstract class AttributeClassObserver<D: DataType<*, *>>(
         private set
 
     fun observe(
-        value: Any?,
+        row: DataRow,
         classIndex: Int,
         weight: Double
     ) {
         observedWeight += weight
-        observeAttributeForClass(value, classIndex, weight)
+        observeAttributeForClass(row, classIndex, weight)
     }
 
     protected abstract fun observeAttributeForClass(
-        value: Any?,
+        row: DataRow,
         classIndex: Int,
         weight: Double
     )
 
     abstract fun probabilityOfAttributeValueGivenClass(
-        value: Any?,
+        row : DataRow,
         classIndex: Int
     ): Double
 

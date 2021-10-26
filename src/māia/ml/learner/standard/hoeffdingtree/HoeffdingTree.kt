@@ -6,13 +6,14 @@ import māia.ml.learner.standard.hoeffdingtree.observer.GaussianNumericAttribute
 import māia.ml.learner.standard.hoeffdingtree.observer.NominalAttributeClassObserver
 import māia.ml.learner.standard.hoeffdingtree.observer.NumericAttributeClassObserver
 import māia.ml.dataset.DataStream
-import māia.ml.dataset.WithColumnHeaders
-import māia.ml.dataset.type.DataTypeWithMissingValues
-import māia.ml.dataset.type.Nominal
-import māia.ml.dataset.type.Numeric
-import māia.ml.dataset.util.buildRow
-import māia.ml.dataset.util.isPossiblyMissing
-import māia.ml.dataset.view.readOnlyViewAllColumnsExcept
+import māia.ml.dataset.WithColumns
+import māia.ml.dataset.headers.DataColumnHeaders
+import māia.ml.dataset.headers.DataColumnHeadersView
+import māia.ml.dataset.headers.ensureOwnership
+import māia.ml.dataset.type.DataRepresentation
+import māia.ml.dataset.type.standard.Nominal
+import māia.ml.dataset.type.standard.Numeric
+import māia.ml.dataset.util.allColumnsExcept
 import māia.ml.dataset.view.readOnlyViewColumns
 import māia.ml.learner.AbstractLearner
 import māia.ml.learner.standard.hoeffdingtree.node.FoundNode
@@ -39,13 +40,13 @@ import māia.util.property.classlevel.override
 
 
 typealias NominalEstimatorFactory = (
-    DataTypeWithMissingValues<*, String, Nominal<*>, *, *>,
-    Nominal<*>
+    Nominal<*, *, *, *>,
+    Nominal<*, *, *, *>
 ) -> NominalAttributeClassObserver
 
 typealias NumericEstimatorFactory = (
-    DataTypeWithMissingValues<*, Double, Numeric<*>, *, *>,
-    Nominal<*>
+    Numeric<*, *>,
+    Nominal<*, *, *, *>
 ) -> NumericAttributeClassObserver
 
 typealias SplitCriterionFactory = () -> SplitCriterion
@@ -88,7 +89,7 @@ open class HoeffdingTree(
 
     internal var classColumnIndex: Int = -1
         private set
-    internal lateinit var classType: Nominal<*>
+    internal lateinit var classType: Nominal<*, *, *, *>
         private set
 
     val nominalEstimatorFactory: NominalEstimatorFactory =
@@ -98,23 +99,23 @@ open class HoeffdingTree(
         numericEstimatorFactory ?: ::GaussianNumericAttributeClassObserver
 
     override fun performInitialisation(
-        headers : WithColumnHeaders
-    ) : Triple<WithColumnHeaders, WithColumnHeaders, LearnerType> {
+        headers : DataColumnHeaders
+    ) : Triple<DataColumnHeaders, DataColumnHeaders, LearnerType> {
 
         val (classIndex, classHeader) = headers
-            .iterateColumnHeaders()
+            .iterator()
             .enumerate()
             .asIterable()
-            .first { isPossiblyMissing<Nominal<*>>(it.second.type) }
+            .first { it.second.type is Nominal<*, *, *, *> }
 
         classColumnIndex = classIndex
-        classType = classHeader.type as Nominal<*>
+        classType = classHeader.type as Nominal<*, *, *, *>
 
         treeRoot = newLearningNode()
 
         return Triple(
-            headers.readOnlyViewAllColumnsExcept(classIndex),
-            headers.readOnlyViewColumns(OrderedHashSet(classIndex)),
+            DataColumnHeadersView(headers, headers.allColumnsExcept(classIndex)),
+            DataColumnHeadersView(headers, OrderedHashSet(classIndex)),
             HOEFFDING_TREE_LEARNER_TYPE
         )
     }
@@ -164,11 +165,17 @@ open class HoeffdingTree(
         val leafNode = foundNode.node ?: foundNode.parentBranch!!.parent
 
         val predictions = Array(predictOutputHeaders.numColumns) {
-            val index = leafNode.getClassVotes(row).maxClassIndex.coerceAtLeast(0)
-            classType.convertIndexToInternal(index)
+            leafNode.getClassVotes(row).maxClassIndex.coerceAtLeast(0)
         }
 
-        return predictOutputHeaders.buildRow(predictions)
+        return object : DataRow {
+            override val headers : DataColumnHeaders = predictOutputHeaders
+            override fun <T> getValue(
+                representation : DataRepresentation<*, *, out T>
+            ) : T = headers.ensureOwnership(representation) {
+                return convert(predictions[columnIndex], classType.indexRepresentation)
+            }
+        }
     }
 
     fun activateLearningNode(

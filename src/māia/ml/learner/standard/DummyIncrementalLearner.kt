@@ -7,12 +7,12 @@ import māia.configure.ConfigurationItem
 import māia.configure.asReconfigureBlock
 import māia.ml.dataset.DataRow
 import māia.ml.dataset.DataStream
-import māia.ml.dataset.WithColumnHeaders
+import māia.ml.dataset.headers.DataColumnHeaders
+import māia.ml.dataset.headers.DataColumnHeadersView
+import māia.ml.dataset.headers.ensureOwnership
+import māia.ml.dataset.type.DataRepresentation
 import māia.ml.dataset.type.FiniteDataType
-import māia.ml.dataset.util.buildRow
-import māia.ml.dataset.util.randomInternal
-import māia.ml.dataset.view.readOnlyViewAllColumnsExcept
-import māia.ml.dataset.view.readOnlyViewColumns
+import māia.ml.dataset.util.allColumnsExcept
 import māia.ml.learner.AbstractLearner
 import māia.ml.learner.factory.ConfigurableLearnerFactory
 import māia.ml.learner.type.AnyLearnerType
@@ -29,9 +29,9 @@ import māia.util.property.classlevel.override
 
 val FiniteTargets = AnyLearnerType.extend("Finite Targets") { _, outputHeaders ->
     outputHeaders
-            .iterateColumnHeaders()
-            .filter { it.type !is FiniteDataType }
-            .map { "${it.name} is not a finite data-type" }
+            .iterator()
+            .filter { it.type !is FiniteDataType<*, *, *> }
+            .map { it.toString() }
             .joinToStringOrNull("; ", "Non-finite headers: ")
 }
 
@@ -50,28 +50,41 @@ class DummyIncrementalLearner(
         DummyIncrementalLearnerType,
         DataStream::class
 ) {
-    private lateinit var targetType : FiniteDataType<*, *>
+    private lateinit var targetType : FiniteDataType<*, *, *>
 
-    override fun performInitialisation(headers : WithColumnHeaders) : Triple<WithColumnHeaders, WithColumnHeaders, LearnerType> {
-        val targetType = headers.getColumnHeader(targetIndex).type
+    override fun performInitialisation(
+        headers : DataColumnHeaders
+    ) : Triple<DataColumnHeaders, DataColumnHeaders, LearnerType> {
+        val targetType = headers[targetIndex].type
 
-        if (targetType !is FiniteDataType<*, *>) throw Exception("Target is not finite")
+        if (targetType !is FiniteDataType<*, *, *>) throw Exception("Target is not finite")
 
         this.targetType = targetType
 
         return Triple(
-                headers.readOnlyViewAllColumnsExcept(targetIndex),
-                headers.readOnlyViewColumns(OrderedHashSet(targetIndex)),
-                DummyIncrementalLearnerType
+            DataColumnHeadersView(headers, headers.allColumnsExcept(targetIndex)),
+            DataColumnHeadersView(headers, OrderedHashSet(targetIndex)),
+            DummyIncrementalLearnerType
         )
     }
 
     override fun performTrain(trainingDataset : DataStream<*>) {
-        // Does nothing
+        // Just drains the stream, no actual training is performed
+        trainingDataset.rowIterator().forEach {
+            // Do nothing
+        }
     }
 
     override fun performPredict(row : DataRow) : DataRow {
-        return predictOutputHeaders.buildRow(cacheHeaders = false) { _ -> targetType.randomInternal() }
+        return object : DataRow {
+            override val headers : DataColumnHeaders = predictOutputHeaders
+            override fun <T> getValue(
+                representation : DataRepresentation<*, *, out T>
+            ) : T = headers.ensureOwnership(representation) {
+                val entropic = targetType.entropicRepresentation
+                return convert(entropic.random(), entropic)
+            }
+        }
     }
 
     companion object {

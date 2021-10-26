@@ -1,11 +1,13 @@
 package māia.ml.learner.standard.hoeffdingtree.split.test
 
 import māia.ml.dataset.DataRow
-import māia.ml.dataset.util.ifNotMissing
+import māia.ml.dataset.error.MissingValue
+import māia.ml.dataset.type.standard.Numeric
 import māia.ml.learner.standard.hoeffdingtree.HoeffdingTree
 import māia.util.Absent
 import māia.util.Optional
 import māia.util.asOptional
+import māia.util.assertType
 
 /**
  * TODO: What class does.
@@ -21,14 +23,15 @@ class NumericAttributeBinaryTest(
     override fun branchForRow(
         row : DataRow
     ) : Optional<Int> {
-        row.ifNotMissing(attIndex) { _, value ->
-            return if ((value as Double) < attValue || (value == attValue && equalsPassesTest))
+        return try {
+            val value = row.getValue(assertType<Numeric<*, *>>(row.headers[attIndex].type).canonicalRepresentation)
+            if (value < attValue || (value == attValue && equalsPassesTest))
                 0.asOptional
             else
                 1.asOptional
+        } catch (e: MissingValue) {
+            Absent
         }
-
-        return Absent
     }
 
     override val attributesTestDependsOn : IntArray
@@ -42,7 +45,7 @@ class NumericAttributeBinaryTest(
         val equalsBranch = if (equalsPassesTest) 0 else 1
         return buildString {
             append("[")
-            append(tree.trainHeaders.getColumnHeader(attIndex).name)
+            append(tree.trainHeaders[attIndex].name)
             append(":att ${attIndex + 1}] ")
             append(compareChar)
             append(if (branch == equalsBranch) "= " else " ")
