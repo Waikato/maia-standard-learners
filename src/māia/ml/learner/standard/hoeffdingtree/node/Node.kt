@@ -16,7 +16,6 @@ import māia.util.Optional
 import māia.util.asIterable
 import māia.util.ensureIndexInRange
 import māia.util.enumerate
-import māia.util.inlineRangeForLoop
 import māia.util.map
 import māia.util.maxReducer
 import māia.util.times
@@ -196,8 +195,7 @@ open class LearningNode(
 
         observedClassDistribution[classIndex] += rowWeight
 
-        inlineRangeForLoop(attributeObservers.size) {
-            val observer = attributeObservers[it]
+        for (observer in attributeObservers) {
             observer.observe(
                 row,
                 classIndex,
@@ -222,9 +220,8 @@ open class LearningNode(
             )
         }
 
-        inlineRangeForLoop(attributeObservers.size) {
-            val attributeIndex = attributeIndices[it]
-            val observer = attributeObservers[it]
+        attributeObservers.forEachIndexed { index, observer ->
+            val attributeIndex = attributeIndices[index]
             val bestSuggestion: SplitSuggestion? = observer.getBestEvaluatedSplitSuggestion(
                 criterion,
                 preSplitDist,

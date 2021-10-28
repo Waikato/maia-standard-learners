@@ -4,7 +4,6 @@ import māia.ml.dataset.DataRow
 import māia.ml.dataset.error.MissingValue
 import māia.ml.learner.standard.hoeffdingtree.HoeffdingTree
 import māia.ml.learner.standard.hoeffdingtree.util.ObservedClassDistribution
-import māia.util.inlineRangeForLoop
 import māia.util.mapInPlaceIndexed
 
 /**
@@ -33,9 +32,7 @@ open class LearningNodeNB(
         if (totalWeight != 0.0) {
             result.array.mapInPlaceIndexed { i, _ ->
                 var result = observedClassDistribution[i] / totalWeight
-                inlineRangeForLoop(attributeObservers.size) {
-                    val attributeIndex = attributeIndices[it]
-                    val observer = attributeObservers[it]
+                for (observer in attributeObservers) {
                     if (observer.observedWeight != 0.0)
                         try {
                             result *= observer.probabilityOfAttributeValueGivenClass(row, i)
