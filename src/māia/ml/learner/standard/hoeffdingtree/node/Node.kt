@@ -21,6 +21,8 @@ import māia.util.maxReducer
 import māia.util.times
 import java.text.DecimalFormat
 
+private val NEWLINE = System.getProperty("line.separator")
+
 sealed class Node(
     protected val owner: HoeffdingTree,
     val observedClassDistribution: ObservedClassDistribution
@@ -128,7 +130,8 @@ open class SplitNode(
             out
                 .append(" " * indent, "if ")
                 .append(splitTest.describeConditionForBranch(branch, owner))
-                .append(": \n")
+                .append(": ")
+                .append(NEWLINE)
             child.describeSubtree(out, indent + 2)
         }
     }
@@ -281,7 +284,7 @@ open class LearningNode(
             .append(":class ${maxClassIndex + 1}> weights: ")
             .append(
                 observedClassDistribution.array.take(owner.treeRoot.observedClassDistribution.nonZeroLength).joinToString(
-                    "|", "{", "}\n"
+                    "|", "{", "}${NEWLINE}"
                 ) {
                     FORMATTER.format(it)
                 }
