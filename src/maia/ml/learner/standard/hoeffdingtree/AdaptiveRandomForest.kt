@@ -56,9 +56,6 @@
 //        if(this.ensemble == null)
 //            initEnsemble(row);
 //
-//
-//
-//
 //    }
 //
 //    protected open fun initEnsemble(row : DataRow) {

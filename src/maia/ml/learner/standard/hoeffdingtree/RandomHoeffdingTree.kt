@@ -19,6 +19,11 @@
 // */
 //package moa.classifiers.trees
 //
+//import maia.ml.dataset.headers.DataColumnHeaders
+//import maia.ml.dataset.headers.DataColumnHeadersView
+//import maia.ml.dataset.type.standard.Nominal
+//import maia.ml.dataset.util.allColumnsExcept
+//import maia.ml.learner.standard.hoeffdingtree.HOEFFDING_TREE_LEARNER_TYPE
 //import maia.ml.learner.standard.hoeffdingtree.HoeffdingTree
 //import maia.ml.learner.standard.hoeffdingtree.LeafPredictor
 //import maia.ml.learner.standard.hoeffdingtree.node.LearningNode
@@ -26,6 +31,10 @@
 //import maia.ml.learner.standard.hoeffdingtree.node.LearningNodeNBAdaptive
 //import maia.ml.learner.standard.hoeffdingtree.node.RandomLearningNode
 //import maia.ml.learner.standard.hoeffdingtree.util.ObservedClassDistribution
+//import maia.ml.learner.type.*
+//import maia.util.asIterable
+//import maia.util.datastructure.OrderedHashSet
+//import maia.util.enumerate
 //
 //
 ///**
@@ -35,7 +44,6 @@
 // * @version $Revision: 7 $
 // */
 //open class RandomHoeffdingTree : HoeffdingTree() {
-//
 //
 //    fun RandomHoeffdingTree() {
 //        this.removePoorAttributes = false
@@ -57,5 +65,4 @@
 //            LeafPredictor.NAIVE_BAYES_ADAPTIVE -> LearningNodeNBAdaptive(this, observations, true)
 //        }
 //    }
-//
 //}

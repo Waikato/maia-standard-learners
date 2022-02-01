@@ -6,6 +6,7 @@ import maia.ml.learner.standard.hoeffdingtree.observer.GaussianNumericAttributeC
 import maia.ml.learner.standard.hoeffdingtree.observer.NominalAttributeClassObserver
 import maia.ml.learner.standard.hoeffdingtree.observer.NumericAttributeClassObserver
 import maia.ml.dataset.DataStream
+import maia.ml.dataset.WithColumns
 import maia.ml.dataset.headers.DataColumnHeaders
 import maia.ml.dataset.headers.DataColumnHeadersView
 import maia.ml.dataset.headers.ensureOwnership
@@ -13,6 +14,7 @@ import maia.ml.dataset.type.DataRepresentation
 import maia.ml.dataset.type.standard.Nominal
 import maia.ml.dataset.type.standard.Numeric
 import maia.ml.dataset.util.allColumnsExcept
+import maia.ml.dataset.view.readOnlyViewColumns
 import maia.ml.learner.AbstractLearner
 import maia.ml.learner.standard.hoeffdingtree.node.FoundNode
 import maia.ml.learner.standard.hoeffdingtree.node.LearningNode
@@ -58,6 +60,7 @@ enum class LeafPredictor {
 }
 
 open class HoeffdingTree(
+    public val targetIndex: Int,
     public val maxBytesSize: Int = 33554432,
     public val gracePeriod: Int = 200,
     private val splitCriterion: SplitCriterion = InfoGainSplitCriterion(),
@@ -100,14 +103,18 @@ open class HoeffdingTree(
         headers : DataColumnHeaders
     ) : Triple<DataColumnHeaders, DataColumnHeaders, LearnerType> {
 
-        val (classIndex, classHeader) = headers
+        /*val (classIndex, classHeader) = headers
             .iterator()
             .enumerate()
             .asIterable()
-            .first { it.second.type is Nominal<*, *, *, *> }
+            .first { it.second.type is Nominal<*, *, *, *> }*/
 
-        classColumnIndex = classIndex
-        classType = classHeader.type as Nominal<*, *, *, *>
+//        classColumnIndex = classIndex
+//        classType = classHeader.type as Nominal<*, *, *, *>
+          val classIndex = targetIndex
+          classColumnIndex = targetIndex
+          classType = headers[targetIndex].type as Nominal<*, *, *, *>
+
 
         treeRoot = newLearningNode()
 

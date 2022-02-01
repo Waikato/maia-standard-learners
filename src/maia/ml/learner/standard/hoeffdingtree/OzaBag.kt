@@ -152,10 +152,10 @@
 //        }
 //    }
 //
-//    private fun getAttributeDoubleValue(attributeType : DataType<*, *>, attributeValue : Any?) : Double {
+//    private fun getAttributeDoubleValue(attributeType : DataType<*, *>, row: DataRow) : Double {
 //        return when (attributeType) {
-//            is Numeric<*, *> -> attributeType.convertToExternalUnchecked(attributeValue)
-//            is Nominal<*, *, *, *> -> attributeType.indexOf(attributeType.convertToExternalUnchecked(attributeValue)).toDouble()
+//            is Numeric<*, *> -> row.getValue(attributeType.canonicalRepresentation)
+//            is Nominal<*, *, *, *> -> row.getValue(attributeType.indexRepresentation).toDouble()
 //            else -> throw Exception("All attributes must be numeric or nominal")
 //        }
 //    }
@@ -171,7 +171,7 @@
 //            var max = 0.0
 //
 //            for (j in 0 until numClasses) {
-//                temp = max(1e-75, distributions[attIndex][j].getProbability(getAttributeDoubleValue(attr.type, row.getColumn(nonClassAttributeIndex))))
+//                temp = max(1e-75, distributions[attIndex][j].getProbability(getAttributeDoubleValue(attr.type, row)))
 //                probs[j] *= temp
 //                if (probs[j] > max) max = probs[j]
 //                if (probs[j].isNaN()) throw Exception("NaN returned from estimator for attribute ${attr.name}:\n" +
