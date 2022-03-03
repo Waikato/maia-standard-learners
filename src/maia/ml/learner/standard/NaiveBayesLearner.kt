@@ -6,10 +6,12 @@ import maia.configure.ConfigurationElement
 import maia.configure.ConfigurationItem
 import maia.configure.asReconfigureBlock
 import maia.ml.dataset.DataBatch
+import maia.ml.dataset.DataColumn
 import maia.ml.dataset.DataRow
 import maia.ml.dataset.headers.DataColumnHeaders
 import maia.ml.dataset.headers.DataColumnHeadersView
 import maia.ml.dataset.headers.ensureOwnership
+import maia.ml.dataset.headers.viewColumns
 import maia.ml.dataset.type.DataRepresentation
 import maia.ml.dataset.type.DataType
 import maia.ml.dataset.type.standard.Nominal
@@ -55,6 +57,8 @@ class NaiveBayesLearner(
     override fun performInitialisation(
         headers : DataColumnHeaders
     ) : Triple<DataColumnHeaders, DataColumnHeaders, LearnerType> {
+        classDistribution = DiscreteEstimator(numClasses, true)
+        distributions = emptyArray()
 
         val targetType = headers[targetIndex].type
 
@@ -166,27 +170,29 @@ class NaiveBayesLearner(
 
         val probs = Array(numClasses) { classDistribution.getProbability(it.toDouble()) }
 
-        for (attIndex in 0 until trainHeaders.numColumns - 1) {
-            val nonClassAttributeIndex = if (attIndex < targetIndex) attIndex else attIndex + 1
-            val attr = trainHeaders[nonClassAttributeIndex]
-            var temp : Double
-            var max = 0.0
+        if (distributions.count() != 0) {
+            for (attIndex in 0 until trainHeaders.numColumns - 1) {
+                val nonClassAttributeIndex = if (attIndex < targetIndex) attIndex else attIndex + 1
+                val attr = trainHeaders[nonClassAttributeIndex]
+                var temp : Double
+                var max = 0.0
 
-            for (j in 0 until numClasses) {
-                temp = max(
-                    1e-75,
-                    distributions[attIndex][j].getProbability(getAttributeDoubleValue(attr.type, row))
-                )
-                probs[j] *= temp
-                if (probs[j] > max) max = probs[j]
-                if (probs[j].isNaN()) throw Exception("NaN returned from estimator for attribute ${attr.name}:\n" +
-                        "${distributions[attIndex][j]}")
+                for (j in 0 until numClasses) {
+                    temp = max(
+                        1e-75,
+                        distributions[attIndex][j].getProbability(getAttributeDoubleValue(attr.type, row))
+                    )
+                    probs[j] *= temp
+                    if (probs[j] > max) max = probs[j]
+                    if (probs[j].isNaN()) throw Exception("NaN returned from estimator for attribute ${attr.name}:\n" +
+                            "${distributions[attIndex][j]}")
+                }
+
+                if (max > 0.0 && max < 1e-75) for (j in 0 until numClasses) probs[j] *= 1e75
             }
-
-            if (max > 0.0 && max < 1e-75) for (j in 0 until numClasses) probs[j] *= 1e75
+            normalise(probs)
         }
 
-        normalise(probs)
         return probs
     }
 
