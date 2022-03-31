@@ -6,7 +6,6 @@ import maia.ml.learner.standard.hoeffdingtree.observer.GaussianNumericAttributeC
 import maia.ml.learner.standard.hoeffdingtree.observer.NominalAttributeClassObserver
 import maia.ml.learner.standard.hoeffdingtree.observer.NumericAttributeClassObserver
 import maia.ml.dataset.DataStream
-import maia.ml.dataset.WithColumns
 import maia.ml.dataset.headers.DataColumnHeaders
 import maia.ml.dataset.headers.DataColumnHeadersView
 import maia.ml.dataset.headers.ensureOwnership
@@ -14,7 +13,6 @@ import maia.ml.dataset.type.DataRepresentation
 import maia.ml.dataset.type.standard.Nominal
 import maia.ml.dataset.type.standard.Numeric
 import maia.ml.dataset.util.allColumnsExcept
-import maia.ml.dataset.view.readOnlyViewColumns
 import maia.ml.learner.AbstractLearner
 import maia.ml.learner.standard.hoeffdingtree.node.FoundNode
 import maia.ml.learner.standard.hoeffdingtree.node.LearningNode
@@ -71,7 +69,8 @@ open class HoeffdingTree(
     nominalEstimatorFactory: NominalEstimatorFactory? = null,
     numericEstimatorFactory: NumericEstimatorFactory? = null,
     public val leafPredictor : LeafPredictor = LeafPredictor.NAIVE_BAYES_ADAPTIVE,
-    public val nbThreshold: Int = 0
+    public val nbThreshold: Int = 0,
+    val selectedClassIndex: Int? = null
 ) : AbstractLearner<DataStream<*>>(
     HOEFFDING_TREE_LEARNER_TYPE,
     DataStream::class
@@ -102,20 +101,33 @@ open class HoeffdingTree(
         headers : DataColumnHeaders
     ) : Triple<DataColumnHeaders, DataColumnHeaders, LearnerType> {
 
-        val (classIndex, classHeader) = headers
-            .iterator()
-            .enumerate()
-            .asIterable()
-            .first { it.second.type is Nominal<*, *, *, *> }
+        if (selectedClassIndex == null) {
 
-        classColumnIndex = classIndex
-        classType = classHeader.type as Nominal<*, *, *, *>
+            val (classIndex, classHeader) =
+                headers
+                    .iterator()
+                    .enumerate()
+                    .asIterable()
+                    .lastOrNull { it.second.type is Nominal<*, *, *, *> && it.second.isTarget } ?:
+                    headers
+                        .iterator()
+                        .enumerate()
+                        .asIterable()
+                        .last { it.second.type is Nominal<*, *, *, *> }
+
+
+            classColumnIndex = classIndex
+            classType = classHeader.type as Nominal<*, *, *, *>
+        } else {
+            if (selectedClassIndex < 0) classColumnIndex = selectedClassIndex % headers.size
+            classType = headers[classColumnIndex].type as Nominal<*, *, *, *>
+        }
 
         treeRoot = newLearningNode()
 
         return Triple(
-            DataColumnHeadersView(headers, headers.allColumnsExcept(classIndex)),
-            DataColumnHeadersView(headers, OrderedHashSet(classIndex)),
+            DataColumnHeadersView(headers, headers.allColumnsExcept(classColumnIndex)),
+            DataColumnHeadersView(headers, OrderedHashSet(classColumnIndex)),
             HOEFFDING_TREE_LEARNER_TYPE
         )
     }
