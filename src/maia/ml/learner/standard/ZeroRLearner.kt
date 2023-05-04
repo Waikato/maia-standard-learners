@@ -1,10 +1,12 @@
 package maia.ml.learner.standard
 
+import kotlinx.coroutines.flow.collect
 import maia.configure.Configurable
 import maia.configure.Configuration
 import maia.configure.ConfigurationElement
 import maia.configure.ConfigurationItem
 import maia.configure.asReconfigureBlock
+import maia.ml.dataset.AsyncDataStream
 import maia.ml.dataset.DataRow
 import maia.ml.dataset.DataStream
 import maia.ml.dataset.headers.DataColumnHeaders
@@ -41,9 +43,9 @@ val ZeroRUninitialisedLearnerType = unionOf(SingleTargetClassifier, SingleTarget
 /**
  * TODO
  */
-class ZeroRLearner(val targetIndex : Int) : AbstractLearner<DataStream<*>>(
+class ZeroRLearner(val targetIndex : Int) : AbstractLearner<AsyncDataStream<*>>(
         ZeroRUninitialisedLearnerType,
-        DataStream::class
+        AsyncDataStream::class
 ) {
     // Define the class-level learner-type
     companion object {
@@ -83,8 +85,8 @@ class ZeroRLearner(val targetIndex : Int) : AbstractLearner<DataStream<*>>(
         )
     }
 
-    override fun performTrain(trainingDataset : DataStream<*>) {
-        for (row in trainingDataset.rowIterator()) {
+    override suspend fun performTrain(trainingDataset : AsyncDataStream<*>) {
+        trainingDataset.rowFlow().collect { row ->
             accumulator.accumulate(row)
         }
     }

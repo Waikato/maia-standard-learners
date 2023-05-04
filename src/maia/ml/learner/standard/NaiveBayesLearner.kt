@@ -74,7 +74,7 @@ class NaiveBayesLearner(
         )
     }
 
-    override fun performTrain(trainingDataset : DataBatch<*>) {
+    override suspend fun performTrain(trainingDataset : DataBatch<*>) {
         // TODO: Implement support
         if (useDiscretization)
             throw NotImplementedError("Using discretization with NaiveBayes is not yet supported")

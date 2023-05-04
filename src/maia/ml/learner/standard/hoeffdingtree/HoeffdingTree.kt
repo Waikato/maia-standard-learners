@@ -1,5 +1,7 @@
 package maia.ml.learner.standard.hoeffdingtree
 
+import kotlinx.coroutines.flow.collect
+import maia.ml.dataset.AsyncDataStream
 import maia.ml.dataset.DataRow
 import maia.ml.learner.standard.hoeffdingtree.node.Node
 import maia.ml.learner.standard.hoeffdingtree.observer.GaussianNumericAttributeClassObserver
@@ -71,9 +73,9 @@ open class HoeffdingTree(
     public val leafPredictor : LeafPredictor = LeafPredictor.NAIVE_BAYES_ADAPTIVE,
     public val nbThreshold: Int = 0,
     val selectedClassIndex: Int? = null
-) : AbstractLearner<DataStream<*>>(
+) : AbstractLearner<AsyncDataStream<*>>(
     HOEFFDING_TREE_LEARNER_TYPE,
-    DataStream::class
+    AsyncDataStream::class
 ) {
     private var decisionNodeCount: Int = 0
     private var activeLeafNodeCount: Int = 1
@@ -161,10 +163,10 @@ open class HoeffdingTree(
         }
     }
 
-    override fun performTrain(
-        trainingDataset : DataStream<*>
+    override suspend fun performTrain(
+        trainingDataset : AsyncDataStream<*>
     ) {
-        trainingDataset.rowIterator().forEachRemaining {
+        trainingDataset.rowFlow().collect {
             trainOnRow(it)
         }
     }

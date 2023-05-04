@@ -1,10 +1,12 @@
 package maia.ml.learner.standard
 
+import kotlinx.coroutines.flow.collect
 import maia.configure.Configurable
 import maia.configure.Configuration
 import maia.configure.ConfigurationElement
 import maia.configure.ConfigurationItem
 import maia.configure.asReconfigureBlock
+import maia.ml.dataset.AsyncDataStream
 import maia.ml.dataset.DataRow
 import maia.ml.dataset.DataStream
 import maia.ml.dataset.headers.DataColumnHeaders
@@ -46,9 +48,9 @@ val DummyIncrementalLearnerType = intersectionOf(FiniteTargets, SingleTarget)
  */
 class DummyIncrementalLearner(
         val targetIndex : Int
-) : AbstractLearner<DataStream<*>>(
+) : AbstractLearner<AsyncDataStream<*>>(
         DummyIncrementalLearnerType,
-        DataStream::class
+        AsyncDataStream::class
 ) {
     private lateinit var targetType : FiniteDataType<*, *, *>
 
@@ -68,9 +70,9 @@ class DummyIncrementalLearner(
         )
     }
 
-    override fun performTrain(trainingDataset : DataStream<*>) {
+    override suspend fun performTrain(trainingDataset : AsyncDataStream<*>) {
         // Just drains the stream, no actual training is performed
-        trainingDataset.rowIterator().forEach {
+        trainingDataset.rowFlow().collect {
             // Do nothing
         }
     }
