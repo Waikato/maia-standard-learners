@@ -19,7 +19,7 @@ import kotlin.collections.HashMap
  */
 class GaussianNumericAttributeClassObserver(
     dataType: Numeric<*, *>,
-    classDataType: Nominal<*, *, *, *>,
+    classDataType: Nominal<*, *, *, *, *>,
     val numBins: Int
 ): NumericAttributeClassObserver(
     dataType,
@@ -27,7 +27,7 @@ class GaussianNumericAttributeClassObserver(
 ) {
     constructor(
         dataType: Numeric<*, *>,
-        classDataType: Nominal<*, *, *, *>,
+        classDataType: Nominal<*, *, *, *, *>,
     ): this(dataType, classDataType, 10)
 
     private val classEstimators: MutableMap<Int, GaussianEstimator> = HashMap()

@@ -8,7 +8,6 @@ import maia.configure.ConfigurationItem
 import maia.configure.asReconfigureBlock
 import maia.ml.dataset.AsyncDataStream
 import maia.ml.dataset.DataRow
-import maia.ml.dataset.DataStream
 import maia.ml.dataset.headers.DataColumnHeaders
 import maia.ml.dataset.headers.DataColumnHeadersView
 import maia.ml.dataset.headers.ensureOwnership
@@ -67,13 +66,13 @@ class ZeroRLearner(val targetIndex : Int) : AbstractLearner<AsyncDataStream<*>>(
 
         // Determine what type of learner we are
         val type = when (targetType) {
-            is Nominal<*, *, *, *> -> SingleTargetClassifier
+            is Nominal<*, *, *, *, *> -> SingleTargetClassifier
             is Numeric<*, *> -> SingleTargetRegressor
             else -> throw Exception("ZeroR requires nominal or numeric target type, found $targetType")
         }
 
         // Create an accumulator for the target type
-        accumulator = if (targetType is Nominal<*, *, *, *>)
+        accumulator = if (targetType is Nominal<*, *, *, *, *>)
             ZeroRNominalAccumulator(targetType.indexRepresentation)
         else
             ZeroRNumericAccumulator((targetType as Numeric<*, *>).canonicalRepresentation)

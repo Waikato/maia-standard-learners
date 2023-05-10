@@ -12,7 +12,7 @@ import maia.ml.learner.standard.hoeffdingtree.util.ObservedClassDistribution
  * @author Corey Sterling (csterlin at waikato dot ac dot nz)
  */
 class NullAttributeClassObserver(
-    classDataType: Nominal<*, *, *, *>
+    classDataType: Nominal<*, *, *, *, *>
 ) : AttributeClassObserver<UntypedData<*, *>>(UntypedData.PlaceHolder(true), classDataType) {
     override fun observeAttributeForClass(
         row : DataRow,

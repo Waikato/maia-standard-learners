@@ -40,13 +40,13 @@ import maia.util.property.classlevel.override
 
 
 typealias NominalEstimatorFactory = (
-    Nominal<*, *, *, *>,
-    Nominal<*, *, *, *>
+    Nominal<*, *, *, *, *>,
+    Nominal<*, *, *, *, *>
 ) -> NominalAttributeClassObserver
 
 typealias NumericEstimatorFactory = (
     Numeric<*, *>,
-    Nominal<*, *, *, *>
+    Nominal<*, *, *, *, *>
 ) -> NumericAttributeClassObserver
 
 typealias SplitCriterionFactory = () -> SplitCriterion
@@ -90,7 +90,7 @@ open class HoeffdingTree(
 
     internal var classColumnIndex: Int = -1
         private set
-    internal lateinit var classType: Nominal<*, *, *, *>
+    internal lateinit var classType: Nominal<*, *, *, *, *>
         private set
 
     val nominalEstimatorFactory: NominalEstimatorFactory =
@@ -110,19 +110,19 @@ open class HoeffdingTree(
                     .iterator()
                     .enumerate()
                     .asIterable()
-                    .lastOrNull { it.second.type is Nominal<*, *, *, *> && it.second.isTarget } ?:
+                    .lastOrNull { it.second.type is Nominal<*, *, *, *, *> && it.second.isTarget } ?:
                     headers
                         .iterator()
                         .enumerate()
                         .asIterable()
-                        .last { it.second.type is Nominal<*, *, *, *> }
+                        .last { it.second.type is Nominal<*, *, *, *, *> }
 
 
             classColumnIndex = classIndex
-            classType = classHeader.type as Nominal<*, *, *, *>
+            classType = classHeader.type as Nominal<*, *, *, *, *>
         } else {
             if (selectedClassIndex < 0) classColumnIndex = selectedClassIndex % headers.size
-            classType = headers[classColumnIndex].type as Nominal<*, *, *, *>
+            classType = headers[classColumnIndex].type as Nominal<*, *, *, *, *>
         }
 
         treeRoot = newLearningNode()

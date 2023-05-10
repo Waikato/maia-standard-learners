@@ -175,7 +175,7 @@ open class LearningNode(
         attributeObservers = Array(owner.predictInputHeaders.numColumns) {
             val attributeIndex = if (it < owner.classColumnIndex) it else it + 1
             val type = owner.trainHeaders[attributeIndex].type
-            val observer = if (type is Nominal<*, *, *, *>) {
+            val observer = if (type is Nominal<*, *, *, *, *>) {
                 owner.nominalEstimatorFactory(type, owner.classType)
             } else if (type is Numeric<*, *>) {
                 owner.numericEstimatorFactory(type, owner.classType)

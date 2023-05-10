@@ -15,9 +15,9 @@ import maia.util.mapInPlaceIndexed
  * @author Corey Sterling (csterlin at waikato dot ac dot nz)
  */
 open class NominalAttributeClassObserver(
-    dataType: Nominal<*, *, *, *>,
-    classDataType: Nominal<*, *, *, *>
-): AttributeClassObserver<Nominal<*, *, *, *>>(
+    dataType: Nominal<*, *, *, *, *>,
+    classDataType: Nominal<*, *, *, *, *>
+): AttributeClassObserver<Nominal<*, *, *, *, *>>(
     dataType,
     classDataType
 ) {

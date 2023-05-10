@@ -13,7 +13,7 @@ import maia.ml.learner.standard.hoeffdingtree.util.ObservedClassDistribution
  */
 abstract class AttributeClassObserver<D: DataType<*, *>>(
     val attributeDataType: D,
-    val classDataType: Nominal<*, *, *, *>
+    val classDataType: Nominal<*, *, *, *, *>
 ) {
     val numTargetClasses: Int
         get() = classDataType.numCategories

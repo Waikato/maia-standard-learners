@@ -19,7 +19,7 @@ class NominalAttributeMultiwayTest(
 ) : SplitTest() {
 
     override fun branchForRow(row : DataRow) : Optional<Int> {
-        val type = assertType<Nominal<*, *, *, *>>(row.headers[attributeIndex].type)
+        val type = assertType<Nominal<*, *, *, *, *>>(row.headers[attributeIndex].type)
         return if (row.isMissing(type))
             Absent
         else
@@ -35,7 +35,7 @@ class NominalAttributeMultiwayTest(
         tree : HoeffdingTree
     ) : String {
         val header = tree.trainHeaders[attributeIndex]
-        val type = assertType<Nominal<*, *, *, *>>(header.type)
+        val type = assertType<Nominal<*, *, *, *, *>>(header.type)
         return "${header.name} = ${type[branch]}"
     }
 

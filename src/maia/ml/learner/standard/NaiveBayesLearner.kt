@@ -52,7 +52,7 @@ class NaiveBayesLearner(
 
     private lateinit var classDistribution : Estimator
 
-    private lateinit var targetType : Nominal<*, *, *, *>
+    private lateinit var targetType : Nominal<*, *, *, *, *>
 
     override fun performInitialisation(
         headers : DataColumnHeaders
@@ -60,7 +60,7 @@ class NaiveBayesLearner(
 
         val targetType = headers[targetIndex].type
 
-        if (targetType !is Nominal<*, *, *, *>)
+        if (targetType !is Nominal<*, *, *, *, *>)
             throw Exception("NaiveBayes only supports nominal classes")
 
         this.targetType = targetType
@@ -108,7 +108,7 @@ class NaiveBayesLearner(
             Array(numClasses) {
                 when (attributeType) {
                     is Numeric -> if (useKernelEstimator) KernelEstimator(numPrecision) else NormalEstimator(numPrecision)
-                    is Nominal<*, *, *, *> -> DiscreteEstimator(attributeType.numCategories, true)
+                    is Nominal<*, *, *, *, *> -> DiscreteEstimator(attributeType.numCategories, true)
                     else -> throw Exception("Attribute type unknown to NaiveBayes")
                 }
             }
@@ -131,7 +131,7 @@ class NaiveBayesLearner(
     private fun getAttributeDoubleValue(attributeType : DataType<*, *>, row: DataRow) : Double {
         return when (attributeType) {
             is Numeric<*, *> -> row.getValue(attributeType.canonicalRepresentation)
-            is Nominal<*, *, *, *> -> row.getValue(attributeType.indexRepresentation).toDouble()
+            is Nominal<*, *, *, *, *> -> row.getValue(attributeType.indexRepresentation).toDouble()
             else -> throw Exception("All attributes must be numeric or nominal")
         }
     }
@@ -156,7 +156,7 @@ class NaiveBayesLearner(
             override fun <T> getValue(
                 representation : DataRepresentation<*, *, out T>
             ) : T = headers.ensureOwnership(representation) {
-                return convert(selection, targetType.canonicalRepresentation)
+                return convert(selection, targetType.labelRepresentation)
             }
         }
     }

@@ -10,7 +10,7 @@ import maia.ml.dataset.type.standard.Numeric
  */
 abstract class NumericAttributeClassObserver(
     dataType: Numeric<*, *>,
-    classDataType: Nominal<*, *, *, *>
+    classDataType: Nominal<*, *, *, *, *>
 ): AttributeClassObserver<Numeric<*, *>>(
     dataType,
     classDataType
